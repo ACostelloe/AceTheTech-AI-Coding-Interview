@@ -1,16 +1,25 @@
 import streamlit as st
 import openai
 import time
+import datetime
+import random
 
 def generate_coding_question():
-    return "Write a function that finds the longest palindrome in a given string."
+    questions = [
+        "Write a function that finds the longest palindrome in a given string.",
+        "Implement a function to check if two strings are anagrams of each other.",
+        "Write a function that returns the nth Fibonacci number using dynamic programming.",
+        "Implement a function to find the lowest common ancestor in a binary tree.",
+        "Write a function that sorts an array using the quicksort algorithm."
+    ]
+    return random.choice(questions)
 
-def evaluate_code(user_code):
+def evaluate_code(user_code, question):
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are an AI coding interviewer evaluating a candidate's code for efficiency and correctness."},
-            {"role": "user", "content": f"Here is the candidate's code:\n{user_code}\nHow well does it solve the problem?"}
+            {"role": "system", "content": "You are an AI coding interviewer evaluating a candidate's code for efficiency and correctness. Provide detailed feedback, including time complexity analysis and potential optimizations."},
+            {"role": "user", "content": f"Here is the candidate's code:\n{user_code}\nThey were asked to solve: {question}\nHow well does it solve the problem? Explain the correct approach and provide insights on improvements."}
         ]
     )
     return response['choices'][0]['message']['content']
@@ -18,8 +27,18 @@ def evaluate_code(user_code):
 st.title("🚀 AI-Powered Coding Interview Simulator")
 st.subheader("Practice real coding challenges and get AI-driven feedback in real-time!")
 
-if 'question' not in st.session_state:
+if 'start_time' not in st.session_state:
+    st.session_state['start_time'] = datetime.datetime.now()
     st.session_state['question'] = generate_coding_question()
+
+elapsed_time = datetime.datetime.now() - st.session_state['start_time']
+remaining_time = max(0, 3600 - elapsed_time.seconds)  # 1 hour session limit
+st.write(f"⏳ Time Elapsed: {elapsed_time.seconds} seconds")
+st.write(f"🕒 Time Remaining: {remaining_time} seconds")
+
+if remaining_time <= 0:
+    st.error("⏳ Your session has expired! Please start a new session to continue.")
+    st.stop()
 
 st.write("### Coding Challenge")
 st.write(st.session_state['question'])
@@ -30,7 +49,7 @@ if st.button("Submit Code"):
     if user_code.strip():
         st.write("Evaluating your solution... ⏳")
         time.sleep(2)  # Simulate evaluation delay
-        feedback = evaluate_code(user_code)
+        feedback = evaluate_code(user_code, st.session_state['question'])
         st.write("### AI Feedback 🧠")
         st.write(feedback)
     else:
