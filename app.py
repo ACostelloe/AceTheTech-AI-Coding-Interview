@@ -111,6 +111,15 @@ if 'start_time' not in st.session_state:
     st.session_state['start_time'] = datetime.datetime.now()
     st.session_state['question'] = generate_coding_question()
 
+# Check session duration
+elapsed_time = datetime.datetime.now() - st.session_state['start_time']
+remaining_time = max(0, 3600 - elapsed_time.seconds)  # 1 hour limit
+st.write(f"⏳ Time Remaining: {remaining_time // 60} minutes {remaining_time % 60} seconds")
+
+if remaining_time <= 0:
+    st.error("Your session has expired! Please restart the application.")
+    st.stop()
+
 st.write("### Coding Challenge")
 st.write(st.session_state['question'])
 
