@@ -4,8 +4,6 @@ import time
 import datetime
 import os
 import pandas as pd
-
-
 from fpdf import FPDF
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -58,8 +56,24 @@ def evaluate_code(user_code, question):
     )
     return response.choices[0].message.content
 
+def generate_pdf(question, user_code, feedback):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.add_font("DejaVu", '', "DejaVuSans.ttf", uni=True)  # Ensure UTF-8 compatibility
+    pdf.set_font("DejaVu", size=12)
+    pdf.cell(200, 10, "AI Coding Interview Results", ln=True, align='C')
+    pdf.ln(10)
+    pdf.multi_cell(0, 10, f"Question: {question}")
+    pdf.ln(5)
+    pdf.multi_cell(0, 10, f"Your Code:\n{user_code}")
+    pdf.ln(5)
+    pdf.multi_cell(0, 10, f"AI Feedback:\n{feedback}")
+    pdf_path = "coding_interview_results.pdf"
+    pdf.output(pdf_path, "F")
+    return pdf_path
+
 def send_email_with_results(email, pdf_path):
-    if not SENDER_EMAIL or not SENDER_PASSWORD:
+    if not SENDER_EMAIL or not SENDER_PASSWORD or not SMTP_SERVER:
         return "Error: Email sender credentials are missing. Please set them as environment variables."
     
     subject = "Your AI Coding Interview Results"
@@ -88,26 +102,8 @@ def send_email_with_results(email, pdf_path):
     except Exception as e:
         print(f"Error sending email: {e}")
 
-def generate_pdf(question, user_code, feedback):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, "AI Coding Interview Results", ln=True, align='C')
-    pdf.ln(10)
-    pdf.multi_cell(0, 10, f"Question: {question}")
-    pdf.ln(5)
-    pdf.multi_cell(0, 10, f"Your Code:\n{user_code}")
-    pdf.ln(5)
-    pdf.multi_cell(0, 10, f"AI Feedback:\n{feedback}")
-    pdf_path = "coding_interview_results.pdf"
-    pdf.output(pdf_path)
-    return pdf_path
-
-# Store user job and question history
-if 'job_stats' not in st.session_state:
-    st.session_state['job_stats'] = pd.DataFrame(columns=['Job Role', 'Interview Question'])
-
-st.markdown("<h1 style='text-align: center; color: #4CAF50;'>🚀 AI-Powered Coding Interview Simulator</h1>", unsafe_allow_html=True)
+# Streamlit UI
+st.title("🚀 AI-Powered Coding Interview Simulator")
 st.subheader("Practice real coding challenges and get AI-driven feedback in real-time!")
 
 if 'start_time' not in st.session_state:
