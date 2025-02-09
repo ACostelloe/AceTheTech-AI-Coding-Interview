@@ -128,12 +128,12 @@ if st.button("Submit & Get Results via Email"):
         st.write("### AI Feedback 🧠")
         st.write(feedback)
         
-        # Generate new question after feedback
-        st.session_state['question'] = generate_coding_question(new=True)
-        st.experimental_rerun()
+        # Set flag to generate new question on next reload
+        st.session_state['new_question'] = True
     else:
         st.warning("Please enter both your code and email before submitting.")
 
-if st.button("🔄 Generate New Question"):
+if st.button("🔄 Generate New Question") or st.session_state.get('new_question', False):
     st.session_state['question'] = generate_coding_question(new=True)
-    st.experimental_rerun()
+    st.session_state['new_question'] = False
+    st.rerun()
