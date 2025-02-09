@@ -2,4 +2,6 @@ streamlit
 openai
 python-dotenv
 pandas
-streamlit-extras
+fpdf
+smtplib
+email
