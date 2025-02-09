@@ -4,12 +4,9 @@ import time
 import datetime
 import os
 import pandas as pd
-from fpdf import FPDF
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
 
 try:
     from dotenv import load_dotenv
@@ -23,6 +20,11 @@ SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 SMTP_SERVER = os.getenv("SMTP_SERVER", "mail.yourdomain.com")  # Default example
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))  # Default to 587
+
+# Ensure results storage
+RESULTS_FILE = "user_results.csv"
+if not os.path.exists(RESULTS_FILE):
+    pd.DataFrame(columns=["Timestamp", "Email", "Question", "User Code", "AI Feedback"]).to_csv(RESULTS_FILE, index=False)
 
 def generate_coding_question(new=False):
     if not OPENAI_API_KEY:
@@ -56,41 +58,40 @@ def evaluate_code(user_code, question):
     )
     return response.choices[0].message.content
 
-def generate_pdf(question, user_code, feedback):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.add_font("DejaVu", '', "DejaVuSans.ttf", uni=True)  # Ensure UTF-8 compatibility
-    pdf.set_font("DejaVu", size=12)
-    pdf.cell(200, 10, "AI Coding Interview Results", ln=True, align='C')
-    pdf.ln(10)
-    pdf.multi_cell(0, 10, f"Question: {question}")
-    pdf.ln(5)
-    pdf.multi_cell(0, 10, f"Your Code:\n{user_code}")
-    pdf.ln(5)
-    pdf.multi_cell(0, 10, f"AI Feedback:\n{feedback}")
-    pdf_path = "coding_interview_results.pdf"
-    pdf.output(pdf_path, "F")
-    return pdf_path
+def save_results(email, question, user_code, feedback):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_data = pd.DataFrame([[timestamp, email, question, user_code, feedback]],
+                             columns=["Timestamp", "Email", "Question", "User Code", "AI Feedback"])
+    new_data.to_csv(RESULTS_FILE, mode='a', header=False, index=False)
 
-def send_email_with_results(email, pdf_path):
+def send_email_with_results(email, question, user_code, feedback):
     if not SENDER_EMAIL or not SENDER_PASSWORD or not SMTP_SERVER:
         return "Error: Email sender credentials are missing. Please set them as environment variables."
     
     subject = "Your AI Coding Interview Results"
-    body = "Please find attached your coding interview results."
+    body = f"""
+    Hello,
+
+    Here are your coding interview results:
+
+    🏆 **Question:**
+    {question}
+
+    🖥 **Your Code:**
+    {user_code}
+
+    🤖 **AI Feedback:**
+    {feedback}
+
+    Best of luck with your interviews!
+    - AI Coding Interview Simulator
+    """
     
     msg = MIMEMultipart()
     msg['From'] = SENDER_EMAIL
     msg['To'] = email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
-    
-    with open(pdf_path, "rb") as attachment:
-        part = MIMEBase('application', 'octet-stream')
-        part.set_payload(attachment.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', "attachment; filename=results.pdf")
-        msg.attach(part)
     
     try:
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
@@ -119,8 +120,20 @@ email = st.text_input("Enter your email to receive results:")
 if st.button("Submit & Get Results via Email"):
     if user_code.strip() and email.strip():
         feedback = evaluate_code(user_code, st.session_state['question'])
-        pdf_path = generate_pdf(st.session_state['question'], user_code, feedback)
-        send_email_with_results(email, pdf_path)
+        save_results(email, st.session_state['question'], user_code, feedback)
+        send_email_with_results(email, st.session_state['question'], user_code, feedback)
         st.success("Your results have been emailed to you!")
+        
+        # Display feedback in UI
+        st.write("### AI Feedback 🧠")
+        st.write(feedback)
+        
+        # Generate new question after feedback
+        st.session_state['question'] = generate_coding_question(new=True)
+        st.experimental_rerun()
     else:
         st.warning("Please enter both your code and email before submitting.")
+
+if st.button("🔄 Generate New Question"):
+    st.session_state['question'] = generate_coding_question(new=True)
+    st.experimental_rerun()
