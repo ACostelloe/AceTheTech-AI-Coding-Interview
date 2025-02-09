@@ -4,8 +4,8 @@ import time
 import datetime
 import os
 import pandas as pd
-from streamlit_extras.add_vertical_space import add_vertical_space
-from streamlit_extras.stylable_container import stylable_container
+
+
 from fpdf import FPDF
 import smtplib
 from email.mime.multipart import MIMEMultipart
