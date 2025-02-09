@@ -2,22 +2,28 @@ import streamlit as st
 import openai
 import time
 import datetime
-import random
 import os
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()  # Load environment variables if running locally
+except ImportError:
+    pass  # Ignore error if dotenv is not installed
 
 def generate_coding_question():
-    questions = [
-        "Write a function that finds the longest palindrome in a given string.",
-        "Implement a function to check if two strings are anagrams of each other.",
-        "Write a function that returns the nth Fibonacci number using dynamic programming.",
-        "Implement a function to find the lowest common ancestor in a binary tree.",
-        "Write a function that sorts an array using the quicksort algorithm."
-    ]
-    return random.choice(questions)
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return "Error: OpenAI API key is missing. Please set it as an environment variable."
+    
+    client = openai.Client(api_key=api_key)
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are an AI coding interviewer. Generate a unique coding challenge for a candidate to solve."},
+            {"role": "user", "content": "Please provide a challenging coding problem suitable for a technical interview."}
+        ]
+    )
+    return response.choices[0].message.content
 
 def evaluate_code(user_code, question):
     api_key = os.getenv("OPENAI_API_KEY")
