@@ -30,11 +30,14 @@ def generate_coding_question(new=False):
     if not OPENAI_API_KEY:
         return "Error: OpenAI API key is missing. Please set it as an environment variable."
     
-    client = openai.Client(api_key=OPENAI_API_KEY)
+    # Print a masked version of the API key (for debugging)
+    print(f"API Key Loaded: {OPENAI_API_KEY[:4]}******{OPENAI_API_KEY[-4:]}")  
+
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
     prompt = "Generate a unique coding challenge for a candidate to solve."
     if new:
         prompt = "Generate a completely new and different coding challenge."
-    
+
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
@@ -43,6 +46,7 @@ def generate_coding_question(new=False):
         ]
     )
     return response.choices[0].message.content
+
 
 def evaluate_code(user_code, question):
     if not OPENAI_API_KEY:
